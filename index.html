@@ -11,11 +11,41 @@
       await OneSignal.init({
         appId: "9d97433d-8973-40fe-a4b3-8529058d5823",
         safari_web_id: "web.onesignal.auto.3a07767d-f8c5-4ebf-965b-cb322da40f9f",
+        serviceWorkerParam: { scope: "/rrs-bus/" },
+        serviceWorkerPath: "/rrs-bus/OneSignalSDKWorker.js",
         notifyButton: {
           enable: true
         }
       });
+
+      // Status update check
+      const updateStatus = () => {
+        const statusEl = document.getElementById("subStatus");
+        if (OneSignal.User.PushSubscription.optedIn) {
+          statusEl.innerText = "✅ Subscribed! Ready to receive bus alerts.";
+          statusEl.style.color = "#188038";
+        }
+      };
+
+      updateStatus();
+      OneSignal.User.PushSubscription.addEventListener("change", updateStatus);
+
+      if (!OneSignal.Notifications.permission) {
+        await OneSignal.Notifications.requestPermission();
+      }
     });
+
+    function triggerSubscribe() {
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.Notifications.requestPermission();
+        await OneSignal.User.PushSubscription.optIn();
+        if (OneSignal.User.PushSubscription.optedIn) {
+          const statusEl = document.getElementById("subStatus");
+          statusEl.innerText = "✅ Subscribed! Ready to receive bus alerts.";
+          statusEl.style.color = "#188038";
+        }
+      });
+    }
   </script>
   <style>
     body {
@@ -42,13 +72,32 @@
       line-height: 1.6;
       font-size: 15px;
     }
+    .sub-btn {
+      display: block;
+      width: 100%;
+      background: #1a73e8;
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      cursor: pointer;
+      margin: 18px 0 8px 0;
+    }
+    #subStatus {
+      font-size: 14px;
+      font-weight: bold;
+      color: #d93025;
+      margin-bottom: 14px;
+    }
     .note {
       background: #fff8e1;
       padding: 10px 12px;
       border-radius: 8px;
       font-size: 13px;
       color: #5f6368;
-      margin: 18px 0;
+      margin: 15px 0;
     }
     .btn {
       display: block;
@@ -59,14 +108,18 @@
       border-radius: 8px;
       font-weight: bold;
       font-size: 16px;
-      margin-top: 15px;
+      margin-top: 12px;
     }
   </style>
 </head>
 <body>
   <div class="card">
     <h2>🚌 RRS Smart Bus Alerts</h2>
-    <p>Daily morning bus attendance notification receive panna, screen-la varra popup (allathu keela right-side bell icon 🔔) click panni <b>"Allow"</b> kudunga.</p>
+    <p>Daily morning bus attendance notification receive panna, keela irukura button click panni <b>"Allow"</b> kudunga.</p>
+    
+    <button class="sub-btn" onclick="triggerSubscribe()">🔔 Enable Bus Notifications</button>
+    <div id="subStatus">Status: Not Subscribed Yet</div>
+
     <div class="note">
       <b>iPhone Users:</b> Safari browser-la Share icon tap panni <b>"Add to Home Screen"</b> kuduthutu app-a open panni Allow pannunga.
     </div>
