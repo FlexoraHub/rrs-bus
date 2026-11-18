@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RRS Smart Bus Attendance</title>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({
+        appId: "UNGA_ONESIGNAL_APP_ID_INGA_PODU",
+        notifyButton: {
+          enable: true
+        }
+      });
+    });
+  </script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f4f6f9;
+      margin: 0;
+      padding: 40px 15px;
+      text-align: center;
+    }
+    .card {
+      background: white;
+      max-width: 400px;
+      margin: auto;
+      padding: 30px 22px;
+      border-radius: 14px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+    }
+    h2 {
+      color: #1a73e8;
+      margin-top: 0;
+    }
+    p {
+      color: #3c4043;
+      line-height: 1.6;
+      font-size: 15px;
+    }
+    .note {
+      background: #fff8e1;
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #5f6368;
+      margin: 18px 0;
+    }
+    .btn {
+      display: block;
+      background: #188038;
+      color: white;
+      padding: 14px;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 16px;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>🚌 RRS Smart Bus Alerts</h2>
+    <p>Daily morning bus attendance notification receive panna, screen-la varra popup (allathu keela right-side bell icon 🔔) click panni <b>"Allow"</b> kudunga.</p>
+    <div class="note">
+      <b>iPhone Users:</b> Safari browser-la Share icon tap panni <b>"Add to Home Screen"</b> kuduthutu app-a open panni Allow pannunga.
+    </div>
+    <a class="btn" href="https://script.google.com/macros/s/AKfycbz7hqrzh_1mtzvwMX6tyEAejuY7E7mB3A0f_OOoI91GG5gpVldJ3Wn0Q0AuP-MTTk7B/exec">
+      Mark Today's Attendance
+    </a>
+  </div>
+</body>
+</html>
