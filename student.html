@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>RRS Bus 110 - Student Attendance</title>
+  <meta name="theme-color" content="#0f172a" />
+  <style>
+    * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body {
+      margin: 0; background: #0f172a; color: #f8fafc;
+      min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 18px;
+    }
+    .card {
+      width: 100%; max-width: 400px; background: #1e293b;
+      border: 1px solid #334155; border-radius: 20px; padding: 26px 22px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.45);
+    }
+    .badge {
+      display: inline-block; background: #1d4ed8; color: #dbeafe;
+      font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 999px; margin-bottom: 10px;
+    }
+    h1 { margin: 0 0 6px; font-size: 22px; font-weight: 800; }
+    p.sub { margin: 0 0 20px; color: #94a3b8; font-size: 14px; }
+    input {
+      width: 100%; padding: 14px; border-radius: 12px; border: 1px solid #475569;
+      background: #0f172a; color: #fff; font-size: 15px; margin-bottom: 14px; outline: none;
+    }
+    input:focus { border-color: #3b82f6; }
+    .btn {
+      width: 100%; padding: 15px; border: none; border-radius: 14px;
+      font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.15s;
+    }
+    .btn-primary { background: #2563eb; color: #fff; }
+    .btn-present { background: #16a34a; color: #fff; margin-bottom: 12px; font-size: 17px; }
+    .btn-absent { background: #dc2626; color: #fff; font-size: 17px; }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .info-box {
+      background: #0f172a; border: 1px solid #334155; border-radius: 14px;
+      padding: 14px 16px; margin-bottom: 18px;
+    }
+    .info-row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #1e293b; }
+    .info-row:last-child { border-bottom: none; }
+    .label { color: #94a3b8; font-size: 13px; }
+    .val { font-weight: 700; font-size: 14px; text-align: right; }
+    .status-banner {
+      padding: 14px; border-radius: 12px; text-align: center;
+      font-weight: 700; font-size: 15px; margin-bottom: 16px;
+    }
+    .banner-wait { background: #334155; color: #cbd5e1; }
+    .banner-recorded { background: #065f46; color: #a7f3d0; border: 1px solid #10b981; }
+    .err { color: #f87171; font-size: 13px; margin-top: 10px; text-align: center; }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <!-- LOGIN SCREEN (One-Time Only) -->
+  <div id="loginBox" class="card">
+    <span class="badge">RRS SMART BUS • 110</span>
+    <h1>Student Login</h1>
+    <p class="sub">Enter your registered college/personal Email ID once to continue.</p>
+    <input type="email" id="emailInput" placeholder="yourname@gmail.com" required />
+    <button class="btn btn-primary" id="loginBtn" onclick="loginStudent()">Login & Continue</button>
+    <div id="loginErr" class="err"></div>
+  </div>
+
+  <!-- SINGLE ATTENDANCE SCREEN (Permanent After Login) -->
+  <div id="appBox" class="card hidden">
+    <span class="badge">RRS SMART BUS • 110</span>
+    <h1>Daily Attendance</h1>
+    <p class="sub">Mark your bus attendance for today</p>
+
+    <div class="info-box">
+      <div class="info-row">
+        <span class="label">Student Name</span>
+        <span class="val" id="sName">-</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Boarding Point</span>
+        <span class="val" id="sStop">-</span>
+      </div>
+      <div class="info-row">
+        <span class="label">Date</span>
+        <span class="val" id="sDate">-</span>
+      </div>
+    </div>
+
+    <div id="waitBanner" class="status-banner banner-wait hidden">
+      ⏳ Attendance not triggered yet for today. Please wait for morning alert.
+    </div>
+
+    <div id="recordedBanner" class="status-banner banner-recorded hidden">
+      ✅ Attendance Recorded (<span id="recChoice"></span>)
+    </div>
+
+    <div id="actionButtons">
+      <button class="btn btn-present" id="btnPresent" onclick="markAttendance('PRESENT')">✔ PRESENT</button>
+      <button class="btn btn-absent" id="btnAbsent" onclick="markAttendance('ABSENT')">✖ ABSENT</button>
+    </div>
+
+    <div id="appErr" class="err"></div>
+  </div>
+
+<script>
+  const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyPqZQQoOTopLVJ2jn5xt5fCb-CiCMQkee_bJ4_2nRzBuWPey8F6rKlc7U9rK-fpMMd/exec";
+  const STORAGE_KEY = "rrs_student_email_v1";
+
+  window.onload = function() {
+    const savedEmail = localStorage.getItem(STORAGE_KEY);
+    if (savedEmail) {
+      loadStudentDashboard(savedEmail);
+    }
+  };
+
+  async function loginStudent() {
+    const email = document.getElementById("emailInput").value.trim().toLowerCase();
+    const errBox = document.getElementById("loginErr");
+    const btn = document.getElementById("loginBtn");
+    errBox.innerText = "";
+
+    if (!email) {
+      errBox.innerText = "Please enter your Email ID.";
+      return;
+    }
+
+    btn.disabled = true;
+    btn.innerText = "Verifying...";
+
+    try {
+      const res = await fetch(`${SCRIPT_URL}?action=studentStatus&email=${encodeURIComponent(email)}`);
+      const data = await res.json();
+
+      if (!data.ok) {
+        errBox.innerText = data.message;
+        btn.disabled = false;
+        btn.innerText = "Login & Continue";
+        return;
+      }
+
+      localStorage.setItem(STORAGE_KEY, email);
+      renderDashboard(data);
+    } catch (e) {
+      errBox.innerText = "Network error. Please try again.";
+      btn.disabled = false;
+      btn.innerText = "Login & Continue";
+    }
+  }
+
+  async function loadStudentDashboard(email) {
+    document.getElementById("loginBox").classList.add("hidden");
+    document.getElementById("appBox").classList.remove("hidden");
+    document.getElementById("sName").innerText = "Loading...";
+
+    try {
+      const res = await fetch(`${SCRIPT_URL}?action=studentStatus&email=${encodeURIComponent(email)}`);
+      const data = await res.json();
+      if (data.ok) {
+        renderDashboard(data);
+      }
+    } catch (e) {
+      document.getElementById("appErr").innerText = "Unable to refresh status. Check internet.";
+    }
+  }
+
+  function renderDashboard(data) {
+    document.getElementById("loginBox").classList.add("hidden");
+    document.getElementById("appBox").classList.remove("hidden");
+
+    document.getElementById("sName").innerText = data.student.name;
+    document.getElementById("sStop").innerText = data.student.boardingPoint;
+    document.getElementById("sDate").innerText = data.todayDate;
+
+    const btnP = document.getElementById("btnPresent");
+    const btnA = document.getElementById("btnAbsent");
+    const waitBanner = document.getElementById("waitBanner");
+    const recBanner = document.getElementById("recordedBanner");
+
+    if (!data.triggered) {
+      waitBanner.classList.remove("hidden");
+      recBanner.classList.add("hidden");
+      btnP.disabled = true;
+      btnA.disabled = true;
+    } else {
+      waitBanner.classList.add("hidden");
+      btnP.disabled = false;
+      btnA.disabled = false;
+
+      if (data.recordedStatus) {
+        recBanner.classList.remove("hidden");
+        document.getElementById("recChoice").innerText = data.recordedStatus;
+      } else {
+        recBanner.classList.add("hidden");
+      }
+    }
+  }
+
+  async function markAttendance(choice) {
+    const email = localStorage.getItem(STORAGE_KEY);
+    const btnP = document.getElementById("btnPresent");
+    const btnA = document.getElementById("btnAbsent");
+    const errBox = document.getElementById("appErr");
+
+    errBox.innerText = "";
+    btnP.disabled = true;
+    btnA.disabled = true;
+
+    try {
+      const res = await fetch(`${SCRIPT_URL}?action=studentMark&email=${encodeURIComponent(email)}&status=${choice}`);
+      const data = await res.json();
+
+      if (!data.ok) {
+        errBox.innerText = data.message;
+        btnP.disabled = false;
+        btnA.disabled = false;
+        return;
+      }
+
+      document.getElementById("recordedBanner").classList.remove("hidden");
+      document.getElementById("recChoice").innerText = data.recordedStatus;
+      btnP.disabled = false;
+      btnA.disabled = false;
+    } catch (e) {
+      errBox.innerText = "Failed to save. Try again.";
+      btnP.disabled = false;
+      btnA.disabled = false;
+    }
+  }
+</script>
+</body>
+</html>
